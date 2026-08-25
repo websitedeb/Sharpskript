@@ -1,11 +1,11 @@
-# SharpScriptLang
+# SharpSkriptLang
 <img src="logo.png" width=100 height=100 />
 
-SharpScriptLang is a "language" i have been making that is like my own superset of javascript (kinda like typescript or elmscript). I will store the documentation here for now.
+SharpSkript is a "language" i have been making that is like my own superset of javascript (kinda like typescript or elmscript). I will store the documentation here for now.
 
 ## Libraries
 
-Sharpscript uses the following:
+Sharpskript uses the following:
 * chevrotain for lexing, parsing, and compiling
 * ink for the console because i love react
 * typescript as the main language

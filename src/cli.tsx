@@ -18,10 +18,10 @@ import { VM } from "./lib/vm.js";
 yargs(hideBin(process.argv))
 	.command(
 		"run <file>",
-		"Runs a SharpScript file",
+		"Runs a SharpSkript file",
 		yargs => {
 			return yargs.positional("file", {
-				describe: "SharpScript file to run",
+				describe: "SharpSkript file to run",
 				type: "string",
 				demandOption: true
 			});

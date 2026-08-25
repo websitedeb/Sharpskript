@@ -1,7 +1,0 @@
-KEY:
-? - optional
-() - group
-| - or
-
-Variable Statement: Scope Type Decleration Identifier Equal OpenDoubleQuotes(Identifier | Integer)ClosedDoubleQuotesSemiColon?
-Print Statement: PrintOpenParenOpenDoubleQuotes?(Identifier|Integer)ClosedDoubleQuotes?ClosedParenSemiColon?

@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "chevrotain": "^13.2.0",
+    "ink": "^7.1.1",
+    "typescript": "^7.0.2"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/yargs": "^17.0.35",
+    "react": "^19.2.8",
+    "yargs": "^18.1.0"
+  },
+  "type": "module",
+  "scripts": {
+    "test": "node dist/cli.js run ./example.sharp"
+  }
+}

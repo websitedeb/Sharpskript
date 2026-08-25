@@ -1,0 +1,4 @@
+global string var? msg = null;
+msg = "Hello";
+-#- print statement
+print(msg);

@@ -62,6 +62,7 @@ its like python
 print(msg);
 print(1);
 print("Hello World");
+print('e');
 ```
 
 ## CLI

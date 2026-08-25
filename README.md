@@ -24,7 +24,6 @@ only single lined comments for now:
 ### Variables
 ```
 [scope] [type] [declaration] [name] = [value];
-
 ```
 #### Scope
 there are 2 scopes currently:

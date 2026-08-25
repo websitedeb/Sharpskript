@@ -1,4 +1,4 @@
-global string var? msg = null;
+local string var? msg = null;
 msg = "Hello";
 -#- print statement
 print(msg);

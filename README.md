@@ -1,7 +1,7 @@
-# SharpSkriptLang
+# SharpSkript
 <img src="logo.png" width=100 height=100 />
 
-SharpSkript is a "language" i have been making that is like my own superset of javascript (kinda like typescript or elmscript). I will store the documentation here for now.
+SharpSkript is a language i have been making that is like my own superset of javascript (kinda like typescript or elmscript). I will store the documentation here for now.
 
 ## Libraries
 
@@ -48,8 +48,8 @@ if you are assigning a value that could be null, then put a "?" after the declar
 
 #### Example
 ```
-global string var msg = "Hello";
-global string const? isNull = null; -#- null values
+local string var msg = "Hello";
+local string const? isNull = null; -#- null values
 
 -#- re-assigning
 msg = "Yo";

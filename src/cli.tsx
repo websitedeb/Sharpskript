@@ -61,10 +61,11 @@ yargs(hideBin(process.argv))
 
 				virtual_machine.run(compiledJS);
 
-				render(
-					<UI content={compiledJS} error={false} />
-				)
-
+				if (argv.verbose) {
+					render(
+						<UI content={compiledJS} error={false} />
+					)
+				}
 			} catch (error) {
 				render(
 					<UI content={error instanceof Error ? error.message : "An unknown error occurred"} error={true} />
@@ -73,4 +74,12 @@ yargs(hideBin(process.argv))
 			}
 		}
 	)
-	.parseAsync();
+	.option(
+		'verbose', 
+		{
+			 alias: 's',
+			type: 'boolean',
+			description: 'Print out compiled Javascript'
+		}
+	)
+	.parseAsync()

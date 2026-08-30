@@ -7,6 +7,7 @@ export class Compiler {
         const variables = cst.children.variableStatement ?? [];
         const assignments = cst.children.reAssignmentStatement ?? [];
         const prints = cst.children.printStatement ?? [];
+        const expressions = cst.children.expressionStatement ?? [];
 
         for (const node of variables) {
             this.output.push(this.compileVariable(node as CstNode));
@@ -18,6 +19,10 @@ export class Compiler {
 
         for (const node of prints) {
             this.output.push(this.compilePrint(node as CstNode));
+        }
+
+        for (const node of expressions) {
+            this.output.push(this.compileExpression(node as CstNode));
         }
 
         return this.output.join("\n");
@@ -156,5 +161,44 @@ export class Compiler {
         }
 
         throw new Error("Unknown Scope");
+    }
+
+    public compileExpression(node : CstNode) : string {
+        const operator = node.children.operator?.[0] as IToken;
+        const arithmeticNodes = node.children.arithmetic;
+        const firstArithmetic = arithmeticNodes?.[0] as CstNode;
+        const secondArithmetic = arithmeticNodes?.[0] as CstNode;
+        const openparans = node.children.OpenParen;
+        const closedparens = node.children.CloseParen;
+
+        const one = openparans?.[0] as IToken, three = openparans?.[1] as IToken;
+        const two = closedparens?.[0] as IToken, four = closedparens?.[1] as IToken;
+
+        const val1 = this.compileAritVal(firstArithmetic);
+        const val2 = this.compileAritVal(secondArithmetic);
+
+        return `${one ? one : ""}${val1}${two ? two : ""} ${operator} ${three ? three : ""}${val2}${four ? four : ""}`
+    }
+
+    public compileAritVal(node : CstNode) : string {
+        const doubleToken = node.children.Double?.[0] as IToken;
+
+        if (doubleToken) {
+            return doubleToken.image;
+        }
+
+        const identifier = node.children.Identifier?.[0] as IToken;
+
+        if (identifier) {
+            return identifier.image;
+        }
+
+        const integer = node.children.Integer?.[0] as IToken;
+
+        if (integer) {
+            return integer.image;
+        }
+
+        throw new Error("Unknown Arit. Value")
     }
 }

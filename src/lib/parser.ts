@@ -25,6 +25,11 @@ import {
     CharacterKeyword,
     Nullable,
     Null,
+    Plus,
+    Minus,
+    Multi,
+    Div,
+    Exp,
     Comment,
 } from "./lexer.js";
 
@@ -42,6 +47,9 @@ export class SharpParser extends CstParser {
                 {
                     ALT: () => this.SUBRULE(this.reAssignmentStatement),
                 },
+                {
+                    ALT: () => {this.SUBRULE(this.expressionStatement)},
+                }
             ]);
         });
     });
@@ -92,13 +100,14 @@ export class SharpParser extends CstParser {
     public value = this.RULE("value", () => {
         this.OR([
             { ALT: () => this.CONSUME2(StringLiteral) },
+            { ALT: () => this.SUBRULE(this.expressionStatement) },
             { ALT: () => this.CONSUME(Integer) },
             { ALT: () => this.CONSUME(Identifier) },
             { ALT: () => this.CONSUME(True) },
             { ALT: () => this.CONSUME(False) },
             { ALT: () => this.CONSUME(Double) },
             { ALT: () => this.CONSUME(CharacterLiteral) },
-            { ALT: () => this.CONSUME(Null) }
+            { ALT: () => this.CONSUME(Null) },
         ]);
     });
 
@@ -122,6 +131,52 @@ export class SharpParser extends CstParser {
         this.OPTION(() => {
             this.CONSUME(Semicolon);
         });
+    });
+
+    public expressionStatement = this.RULE("expressionStatement", () => {
+        this.OPTION1(() => {
+            this.CONSUME1(OpenParen);
+        })
+
+        this.SUBRULE(this.arithmetic);
+
+        this.OPTION2(() => {
+            this.CONSUME2(CloseParen);
+        });
+
+        this.SUBRULE(this.operator);
+
+        this.OPTION3(() => {
+            this.CONSUME3(OpenParen);
+        })
+
+        this.SUBRULE2(this.arithmetic);
+
+        this.OPTION4(() => {
+            this.CONSUME4(CloseParen);
+        });
+
+        this.OPTION5(() => {
+            this.CONSUME5(Semicolon);
+        });
+    });
+
+    public arithmetic = this.RULE("arithmetic", () => {
+        this.OR([
+            { ALT: () => this.CONSUME(Integer)},
+            { ALT: () => this.CONSUME(Double)},
+            { ALT: () => this.CONSUME(Identifier)},
+        ]);
+    });
+
+    public operator = this.RULE("operator", () => {
+        this.OR([
+            { ALT: () => this.CONSUME(Plus)},
+            { ALT: () => this.CONSUME(Minus)},
+            { ALT: () => this.CONSUME(Multi)},
+            { ALT: () => this.CONSUME(Div)},
+            { ALT: () => this.CONSUME(Exp)},
+        ]);
     });
 
     constructor() {

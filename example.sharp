@@ -1,4 +1,3 @@
-local string var? msg = null;
-msg = "Hello";
+local double var? msg1 = 1
 -#- print statement
-print(msg);
+print(msg1);

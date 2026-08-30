@@ -1,4 +1,4 @@
-import type { CstNode, IToken } from "chevrotain";
+import type { CstElement, CstNode, IToken } from "chevrotain";
 
 type Variable = {
     name: string;
@@ -20,6 +20,7 @@ export class SemanticAnalyzer {
         const var_statements = node.children.variableStatement ?? [];
         const print_statements = node.children.printStatement ?? [];
         const re_statement = node.children.reAssignmentStatement ?? [];
+        const expressionStatement = node.children.expressionStatement ?? [];
 
         for (const statement of var_statements) {
             this.visitVariableStatement(statement as CstNode);
@@ -32,9 +33,11 @@ export class SemanticAnalyzer {
         for (const statement of re_statement) {
             this.visitReStatement(statement as CstNode);
         }
-    }
 
-    // print
+        for (const statement of expressionStatement) {
+            this.visitExpressionStatement(statement as CstNode);
+        }
+    }
 
     private visitPrintStatement(node: CstNode) {
         const valueNode = node.children.value?.[0] as CstNode;
@@ -54,8 +57,6 @@ export class SemanticAnalyzer {
             throw new Error(`Variable '${value}' has not been declared.`);
         }
     }
-
-    // vars
 
     private visitVariableStatement(node: CstNode) {
         const scopeNode = node.children.scope?.[0] as CstNode;
@@ -116,7 +117,8 @@ export class SemanticAnalyzer {
             return this.variables.get(value)?.type === "string";
 
         } else if (type === "integer") {
-            if (/^\d+$/.test(value)) {
+            const regex = /^[a-zA-Z0-9_+\-*/^()\s]+$/;
+            if (/^\d+$/.test(value) || regex.test(value)) {
                 return true;
             }
 
@@ -130,7 +132,8 @@ export class SemanticAnalyzer {
             return this.variables.get(value)?.type === "boolean";
 
         } else if (type === "double") {
-            if (/^\d+\.\d+$/.test(value)) {
+            const regex = /^(?=(?:[^.]*\.){0,2}[^.]*$)[a-zA-Z0-9_+\-*/^().\s]+$/;
+            if (regex.test(value)) {
                 return true;
             }
 
@@ -284,5 +287,32 @@ export class SemanticAnalyzer {
 
     public getVariables(): Variable[] {
         return Array.from(this.variables.values());
+    }
+
+    public visitExpressionStatement(node: CstNode) {
+        const arithmeticNodes = node.children.arithmetic;
+        const firstArithmetic = arithmeticNodes?.[0] as CstNode;
+        const secondArithmetic = arithmeticNodes?.[1] as CstNode;
+
+        this.checkValueUsedInExpression(firstArithmetic);
+        this.checkValueUsedInExpression(secondArithmetic);
+    }
+
+    private checkValueUsedInExpression(elm : CstNode) : void {
+        if (!elm.children.Integer?.[0] || !elm.children.Double?.[0]) {
+            const varname = elm.children.Identifier?.[0] as IToken;
+            
+            if (!varname) {
+                throw new Error("Invalid Literal.");
+            }
+
+            const vardesc = this.variables.get(varname.image);
+            if (vardesc?.type != "integer" && vardesc?.type != "double") {
+                throw new Error("Invalid Type used in expression.");
+            }
+            if (vardesc.value == "null") {
+                throw new Error("Null can't be used in expressions.");
+            }
+        }
     }
 }

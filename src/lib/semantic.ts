@@ -1,4 +1,4 @@
-import type { CstElement, CstNode, IToken } from "chevrotain";
+import type { CstNode, IToken } from "chevrotain";
 
 type Variable = {
     name: string;
@@ -17,45 +17,30 @@ export class SemanticAnalyzer {
     }
 
     private visitProgram(node: CstNode) {
-        const var_statements = node.children.variableStatement ?? [];
-        const print_statements = node.children.printStatement ?? [];
-        const re_statement = node.children.reAssignmentStatement ?? [];
-        const expressionStatement = node.children.expressionStatement ?? [];
+        const statements = Object.values(node.children)
+            .flat() as CstNode[];
 
-        for (const statement of var_statements) {
-            this.visitVariableStatement(statement as CstNode);
-        }
-
-        for (const statement of print_statements) {
-            this.visitPrintStatement(statement as CstNode);
-        }
-
-        for (const statement of re_statement) {
-            this.visitReStatement(statement as CstNode);
-        }
-
-        for (const statement of expressionStatement) {
-            this.visitExpressionStatement(statement as CstNode);
+        for (const statement of statements.sort((left, right) => this.startOffset(left) - this.startOffset(right))) {
+            switch (statement.name) {
+                case "variableStatement":
+                    this.visitVariableStatement(statement);
+                    break;
+                case "printStatement":
+                    this.visitPrintStatement(statement);
+                    break;
+                case "reAssignmentStatement":
+                    this.visitReStatement(statement);
+                    break;
+                case "expressionStatement":
+                    this.visitExpressionStatement(statement);
+                    break;
+            }
         }
     }
 
     private visitPrintStatement(node: CstNode) {
         const valueNode = node.children.value?.[0] as CstNode;
-        const value = this.getValue(valueNode);
-
-        const variable = this.variables.get(value);
-
-        if (
-            !variable &&
-            !/^\d+$/.test(value) &&
-            !/^".*"$/.test(value) &&
-            value !== "true" &&
-            value !== "false" &&
-            !/^\d+\.\d+$/.test(value) &&
-            !/^'.'$/.test(value)
-        ) {
-            throw new Error(`Variable '${value}' has not been declared.`);
-        }
+        this.inferExpressionType(valueNode.children.expression?.[0] as CstNode);
     }
 
     private visitVariableStatement(node: CstNode) {
@@ -72,7 +57,6 @@ export class SemanticAnalyzer {
         const scope = this.getScope(scopeNode);
         const type = this.getType(typeNode);
         const declaration = this.getDeclaration(declarationNode);
-        const value = this.getValue(valueNode);
 
         if (this.variables.has(name)) {
             throw new Error(
@@ -80,13 +64,9 @@ export class SemanticAnalyzer {
             );
         }
 
-        if (!this.checkIfAssignedVariableValueIsValid(
-            type,
-            value,
-            isNullable
-        )) {
+        if (!this.isExpressionAssignableTo(type, valueNode, isNullable)) {
             throw new Error(
-                `Value '${value}' is not valid for variable '${name}' of type '${type}'.`
+                `Assigned value is not valid for variable '${name}' of type '${type}'.`
             );
         }
 
@@ -95,59 +75,9 @@ export class SemanticAnalyzer {
             scope,
             type,
             declaration,
-            value,
+            value: this.describeExpression(valueNode),
             isNullable
         });
-    }
-
-    private checkIfAssignedVariableValueIsValid(
-        type: string,
-        value: string,
-        isNullable: boolean
-    ): boolean {
-        if (value === "null") {
-            return isNullable;
-        }
-
-        if (type === "string") {
-            if (/^".*"$/.test(value)) {
-                return true;
-            }
-
-            return this.variables.get(value)?.type === "string";
-
-        } else if (type === "integer") {
-            const regex = /^[a-zA-Z0-9_+\-*/^()\s]+$/;
-            if (/^\d+$/.test(value) || regex.test(value)) {
-                return true;
-            }
-
-            return this.variables.get(value)?.type === "integer";
-
-        } else if (type === "boolean") {
-            if (value === "true" || value === "false") {
-                return true;
-            }
-
-            return this.variables.get(value)?.type === "boolean";
-
-        } else if (type === "double") {
-            const regex = /^(?=(?:[^.]*\.){0,2}[^.]*$)[a-zA-Z0-9_+\-*/^().\s]+$/;
-            if (regex.test(value)) {
-                return true;
-            }
-
-            return this.variables.get(value)?.type === "double";
-
-        } else if (type === "char") {
-            if (/^'.'$/.test(value)) {
-                return true;
-            }
-
-            return this.variables.get(value)?.type === "char";
-        }
-
-        return false;
     }
 
     private visitReStatement(node : CstNode){
@@ -161,21 +91,13 @@ export class SemanticAnalyzer {
 
         if (data?.declaration == "const") throw new Error(`${name} is a constant, you cant re-assign it!`);
 
-        const value = this.getValue(valueNode);
-
-        if (
-            !this.checkIfAssignedVariableValueIsValid(
-                data.type,
-                value,
-                data.isNullable
-            )
-        ) {
+        if (!this.isExpressionAssignableTo(data.type, valueNode, data.isNullable)) {
             throw new Error(
-                `${name} cannot be assigned '${value}'.`
+                `${name} cannot be assigned that value.`
             );
         }
 
-        this.changeVariableValue(data as Variable);
+        this.changeVariableValue({ ...data, value: this.describeExpression(valueNode) });
     }
 
     private changeVariableValue(newVar : Variable) {
@@ -233,86 +155,88 @@ export class SemanticAnalyzer {
         throw new Error("Invalid declaration.");
     }
 
-    private getValue(node: CstNode): string {
-        const stringLiteral = node.children.StringLiteral?.[0] as IToken;
-
-        if (stringLiteral) {
-            return stringLiteral.image;
-        }
-
-        const integer = node.children.Integer?.[0] as IToken;
-
-        if (integer) {
-            return integer.image;
-        }
-
-        const identifier = node.children.Identifier?.[0] as IToken;
-
-        if (identifier) {
-            return identifier.image;
-        }
-
-        const trueToken = node.children.True?.[0] as IToken;
-
-        if (trueToken) {
-            return trueToken.image;
-        }
-
-        const falseToken = node.children.False?.[0] as IToken;
-
-        if (falseToken) {
-            return falseToken.image;
-        }
-
-        const doubleToken = node.children.Double?.[0] as IToken;
-
-        if (doubleToken) {
-            return doubleToken.image;
-        }
-
-        const charToken = node.children.CharacterLiteral?.[0] as IToken;
-
-        if (charToken) {
-            return charToken.image;
-        }
-
-        const nullToken = node.children.Null?.[0] as IToken;
-
-        if (nullToken) {
-            return nullToken.image;
-        }
-
-        throw new Error("Invalid value.");
-    }
-
     public getVariables(): Variable[] {
         return Array.from(this.variables.values());
     }
 
     public visitExpressionStatement(node: CstNode) {
-        const arithmeticNodes = node.children.arithmetic;
-        const firstArithmetic = arithmeticNodes?.[0] as CstNode;
-        const secondArithmetic = arithmeticNodes?.[1] as CstNode;
-
-        this.checkValueUsedInExpression(firstArithmetic);
-        this.checkValueUsedInExpression(secondArithmetic);
+        this.inferExpressionType(node.children.expression?.[0] as CstNode);
     }
 
-    private checkValueUsedInExpression(elm : CstNode) : void {
-        if (!elm.children.Integer?.[0] || !elm.children.Double?.[0]) {
-            const varname = elm.children.Identifier?.[0] as IToken;
-            
-            if (!varname) {
-                throw new Error("Invalid Literal.");
-            }
+    private isExpressionAssignableTo(type: string, valueNode: CstNode, isNullable: boolean): boolean {
+        const expression = valueNode.children.expression?.[0] as CstNode;
+        const valueType = this.inferExpressionType(expression);
+        if (valueType === "null") return isNullable;
+        return valueType === type || (type === "double" && valueType === "integer");
+    }
 
-            const vardesc = this.variables.get(varname.image);
-            if (vardesc?.type != "integer" && vardesc?.type != "double") {
-                throw new Error("Invalid Type used in expression.");
+    private inferExpressionType(node: CstNode): string {
+        if (node.name === "expression") return this.inferExpressionType(node.children.sum?.[0] as CstNode);
+        if (node.name === "power") {
+            const left = this.inferExpressionType(node.children.unary?.[0] as CstNode);
+            const rightNode = node.children.power?.[0] as CstNode | undefined;
+            if (!rightNode) return left;
+            const right = this.inferExpressionType(rightNode);
+            if (!this.isNumeric(left) || !this.isNumeric(right)) {
+                throw new Error("Arithmetic operators require integer or double operands.");
             }
-            if (vardesc.value == "null") {
-                throw new Error("Null can't be used in expressions.");
-            }
+            return left === "double" || right === "double" ? "double" : "integer";
         }
+        if (node.name === "sum" || node.name === "product") {
+            const children = node.children;
+            const terms = (children.product ?? children.power) as CstNode[];
+            let result = this.inferExpressionType(terms[0] as CstNode);
+            for (let index = 1; index < terms.length; index++) {
+                const right = this.inferExpressionType(terms[index] as CstNode);
+                if (!this.isNumeric(result) || !this.isNumeric(right)) {
+                    throw new Error("Arithmetic operators require integer or double operands.");
+                }
+                if (node.name === "product" && children.Div) result = "double";
+                else if (result === "double" || right === "double") result = "double";
+            }
+            return result;
+        }
+        if (node.name === "unary") {
+            const valueType = this.inferExpressionType(node.children.primary?.[0] as CstNode);
+            if (node.children.Minus && !this.isNumeric(valueType)) {
+                throw new Error("Unary '-' requires an integer or double operand.");
+            }
+            return valueType;
+        }
+        if (node.name !== "primary") throw new Error("Invalid expression.");
+
+        const children = node.children;
+        if (children.Integer) return "integer";
+        if (children.Double) return "double";
+        if (children.StringLiteral) return "string";
+        if (children.True || children.False) return "boolean";
+        if (children.CharacterLiteral) return "char";
+        if (children.Null) return "null";
+        if (children.expression) return this.inferExpressionType(children.expression[0] as CstNode);
+        const identifier = children.Identifier?.[0] as IToken | undefined;
+        if (!identifier) throw new Error("Invalid expression.");
+        const variable = this.variables.get(identifier.image);
+        if (!variable) throw new Error(`Variable '${identifier.image}' has not been declared.`);
+        if (variable.value === "null") throw new Error("Null can't be used in expressions.");
+        return variable.type;
+    }
+
+    private isNumeric(type: string): boolean {
+        return type === "integer" || type === "double";
+    }
+
+    private describeExpression(node: CstNode): string {
+        const tokens = this.collectTokens(node);
+        return tokens.map(token => token.image).join(" ");
+    }
+
+    private collectTokens(node: CstNode): IToken[] {
+        return Object.values(node.children).flatMap(children => children.flatMap(child =>
+            "image" in child ? [child as IToken] : this.collectTokens(child as CstNode)
+        )).sort((left, right) => left.startOffset - right.startOffset);
+    }
+
+    private startOffset(node: CstNode): number {
+        return this.collectTokens(node)[0]?.startOffset ?? Number.MAX_SAFE_INTEGER;
     }
 }

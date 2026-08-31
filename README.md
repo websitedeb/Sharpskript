@@ -44,12 +44,12 @@ there are 2 declarations:
 * const : for immutable variables, aka constants
 * var : for mutable variables
 
-if you are assigning a value that could be null, then put a "?" after the declaration (see example)
+if you are assigning a value that could be null, then put a "?" after the type (see example)
 
 #### Example
 ```
 local string var msg = "Hello";
-local string const? isNull = null; -#- null values
+local string? const isNull = null; -#- null values
 
 -#- re-assigning
 msg = "Yo";
@@ -63,6 +63,20 @@ print(1);
 print("Hello World");
 print('e');
 ```
+
+### Expressions
+Integer and double values can be combined with `+`, `-`, `*`, `/`, and `^`.
+Parentheses control evaluation order; otherwise exponentiation is evaluated first,
+then multiplication/division, then addition/subtraction.
+
+```
+local int var total = 1 + 2 * 3;
+local double var average = (total + 1) / 2;
+print(average);
+```
+
+Expressions may use previously declared `int` and `double` variables. Other
+types, undeclared variables, and `null` values produce semantic errors.
 
 ## CLI
 there is only 1 command (once i bundle the typescript)

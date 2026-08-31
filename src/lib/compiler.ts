@@ -4,25 +4,24 @@ export class Compiler {
     private output: string[] = [];
 
     compile(cst: CstNode): string {
-        const variables = cst.children.variableStatement ?? [];
-        const assignments = cst.children.reAssignmentStatement ?? [];
-        const prints = cst.children.printStatement ?? [];
-        const expressions = cst.children.expressionStatement ?? [];
+        const statements = Object.values(cst.children)
+            .flat() as CstNode[];
 
-        for (const node of variables) {
-            this.output.push(this.compileVariable(node as CstNode));
-        }
-
-        for (const node of assignments) {
-            this.output.push(this.compileAssignment(node as CstNode));
-        }
-
-        for (const node of prints) {
-            this.output.push(this.compilePrint(node as CstNode));
-        }
-
-        for (const node of expressions) {
-            this.output.push(this.compileExpression(node as CstNode));
+        for (const node of statements.sort((left, right) => this.startOffset(left) - this.startOffset(right))) {
+            switch (node.name) {
+                case "variableStatement":
+                    this.output.push(this.compileVariable(node));
+                    break;
+                case "reAssignmentStatement":
+                    this.output.push(this.compileAssignment(node));
+                    break;
+                case "printStatement":
+                    this.output.push(this.compilePrint(node));
+                    break;
+                case "expressionStatement":
+                    this.output.push(this.compileExpression(node));
+                    break;
+            }
         }
 
         return this.output.join("\n");
@@ -80,55 +79,7 @@ export class Compiler {
     }
 
     private compileValue(node: CstNode): string {
-        const stringLiteral = node.children.StringLiteral?.[0] as IToken;
-
-        if (stringLiteral) {
-            return stringLiteral.image;
-        }
-
-        const integer = node.children.Integer?.[0] as IToken;
-
-        if (integer) {
-            return integer.image;
-        }
-
-        const identifier = node.children.Identifier?.[0] as IToken;
-
-        if (identifier) {
-            return identifier.image;
-        }
-
-        const trueToken = node.children.True?.[0] as IToken;
-
-        if (trueToken) {
-            return trueToken.image;
-        }
-
-        const falseToken = node.children.False?.[0] as IToken;
-
-        if (falseToken) {
-            return falseToken.image;
-        }
-
-        const doubleToken = node.children.Double?.[0] as IToken;
-
-        if (doubleToken) {
-            return doubleToken.image;
-        }
-
-        const charToken = node.children.CharacterLiteral?.[0] as IToken;
-
-        if (charToken) {
-            return charToken.image;
-        }
-
-        const nullToken = node.children.Null?.[0] as IToken;
-
-        if (nullToken) {
-            return nullToken.image;
-        }
-
-        throw new Error("Unknown value.");
+        return this.compileExpressionNode(node.children.expression?.[0] as CstNode);
     }
 
     private compileDeclaration(node : CstNode) : string {
@@ -164,41 +115,22 @@ export class Compiler {
     }
 
     public compileExpression(node : CstNode) : string {
-        const operator = node.children.operator?.[0] as IToken;
-        const arithmeticNodes = node.children.arithmetic;
-        const firstArithmetic = arithmeticNodes?.[0] as CstNode;
-        const secondArithmetic = arithmeticNodes?.[0] as CstNode;
-        const openparans = node.children.OpenParen;
-        const closedparens = node.children.CloseParen;
-
-        const one = openparans?.[0] as IToken, three = openparans?.[1] as IToken;
-        const two = closedparens?.[0] as IToken, four = closedparens?.[1] as IToken;
-
-        const val1 = this.compileAritVal(firstArithmetic);
-        const val2 = this.compileAritVal(secondArithmetic);
-
-        return `${one ? one : ""}${val1}${two ? two : ""} ${operator} ${three ? three : ""}${val2}${four ? four : ""}`
+        return `${this.compileExpressionNode(node.children.expression?.[0] as CstNode)};`;
     }
 
-    public compileAritVal(node : CstNode) : string {
-        const doubleToken = node.children.Double?.[0] as IToken;
+    private compileExpressionNode(node: CstNode): string {
+        return this.collectTokens(node)
+            .map(token => token.image === "^" ? "**" : token.image)
+            .join(" ");
+    }
 
-        if (doubleToken) {
-            return doubleToken.image;
-        }
+    private collectTokens(node: CstNode): IToken[] {
+        return Object.values(node.children).flatMap(children => children.flatMap(child =>
+            "image" in child ? [child as IToken] : this.collectTokens(child as CstNode)
+        )).sort((left, right) => left.startOffset - right.startOffset);
+    }
 
-        const identifier = node.children.Identifier?.[0] as IToken;
-
-        if (identifier) {
-            return identifier.image;
-        }
-
-        const integer = node.children.Integer?.[0] as IToken;
-
-        if (integer) {
-            return integer.image;
-        }
-
-        throw new Error("Unknown Arit. Value")
+    private startOffset(node: CstNode): number {
+        return this.collectTokens(node)[0]?.startOffset ?? Number.MAX_SAFE_INTEGER;
     }
 }

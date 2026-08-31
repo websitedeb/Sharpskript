@@ -48,7 +48,7 @@ export class SharpParser extends CstParser {
                     ALT: () => this.SUBRULE(this.reAssignmentStatement),
                 },
                 {
-                    ALT: () => {this.SUBRULE(this.expressionStatement)},
+                    ALT: () => this.SUBRULE(this.expressionStatement),
                 }
             ]);
         });
@@ -57,10 +57,10 @@ export class SharpParser extends CstParser {
     public variableStatement = this.RULE("variableStatement", () => {
         this.SUBRULE(this.scope);
         this.SUBRULE(this.type);
-        this.SUBRULE(this.declaration);
         this.OPTION(() => {
             this.CONSUME(Nullable);
         })
+        this.SUBRULE(this.declaration);
 
         this.CONSUME(Identifier);
 
@@ -98,17 +98,7 @@ export class SharpParser extends CstParser {
     });
 
     public value = this.RULE("value", () => {
-        this.OR([
-            { ALT: () => this.CONSUME2(StringLiteral) },
-            { ALT: () => this.SUBRULE(this.expressionStatement) },
-            { ALT: () => this.CONSUME(Integer) },
-            { ALT: () => this.CONSUME(Identifier) },
-            { ALT: () => this.CONSUME(True) },
-            { ALT: () => this.CONSUME(False) },
-            { ALT: () => this.CONSUME(Double) },
-            { ALT: () => this.CONSUME(CharacterLiteral) },
-            { ALT: () => this.CONSUME(Null) },
-        ]);
+        this.SUBRULE(this.expression);
     });
 
     public reAssignmentStatement = this.RULE("reAssignmentStatement", () => {
@@ -134,48 +124,67 @@ export class SharpParser extends CstParser {
     });
 
     public expressionStatement = this.RULE("expressionStatement", () => {
-        this.OPTION1(() => {
-            this.CONSUME1(OpenParen);
-        })
+        this.SUBRULE(this.expression);
+        this.OPTION(() => this.CONSUME(Semicolon));
+    });
 
-        this.SUBRULE(this.arithmetic);
+    //power > product > sum.
+    public expression = this.RULE("expression", () => {
+        this.SUBRULE(this.sum);
+    });
 
-        this.OPTION2(() => {
-            this.CONSUME2(CloseParen);
-        });
-
-        this.SUBRULE(this.operator);
-
-        this.OPTION3(() => {
-            this.CONSUME3(OpenParen);
-        })
-
-        this.SUBRULE2(this.arithmetic);
-
-        this.OPTION4(() => {
-            this.CONSUME4(CloseParen);
-        });
-
-        this.OPTION5(() => {
-            this.CONSUME5(Semicolon);
+    public sum = this.RULE("sum", () => {
+        this.SUBRULE(this.product);
+        this.MANY(() => {
+            this.OR([
+                { ALT: () => this.CONSUME(Plus) },
+                { ALT: () => this.CONSUME(Minus) },
+            ]);
+            this.SUBRULE2(this.product);
         });
     });
 
-    public arithmetic = this.RULE("arithmetic", () => {
-        this.OR([
-            { ALT: () => this.CONSUME(Integer)},
-            { ALT: () => this.CONSUME(Double)},
-            { ALT: () => this.CONSUME(Identifier)},
-        ]);
+    public product = this.RULE("product", () => {
+        this.SUBRULE(this.power);
+        this.MANY(() => {
+            this.OR([
+                { ALT: () => this.CONSUME(Multi) },
+                { ALT: () => this.CONSUME(Div) },
+            ]);
+            this.SUBRULE2(this.power);
+        });
     });
 
-    public operator = this.RULE("operator", () => {
+    public power = this.RULE("power", () => {
+        this.SUBRULE(this.unary);
+        this.OPTION(() => {
+            this.CONSUME(Exp);
+            this.SUBRULE2(this.power);
+        });
+    });
+
+    public unary = this.RULE("unary", () => {
+        this.OPTION(() => this.CONSUME(Minus));
+        this.SUBRULE(this.primary);
+    });
+
+    public primary = this.RULE("primary", () => {
         this.OR([
-            { ALT: () => this.CONSUME(Plus)},
-            { ALT: () => this.CONSUME(Minus)},
-            { ALT: () => this.CONSUME(Multi)},
-            { ALT: () => this.CONSUME(Div)},
-            { ALT: () => this.CONSUME(Exp)},
+            { ALT: () => this.CONSUME(StringLiteral) },
+            { ALT: () => this.CONSUME(Integer) },
+            { ALT: () => this.CONSUME(True) },
+            { ALT: () => this.CONSUME(False) },
+            { ALT: () => this.CONSUME(Double) },
+            { ALT: () => this.CONSUME(CharacterLiteral) },
+            { ALT: () => this.CONSUME(Null) },
+            { ALT: () => this.CONSUME(Identifier) },
+            {
+                ALT: () => {
+                    this.CONSUME(OpenParen);
+                    this.SUBRULE(this.expression);
+                    this.CONSUME(CloseParen);
+                },
+            },
         ]);
     });
 

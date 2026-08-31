@@ -1,4 +1,4 @@
-local string var? msg = null;
-msg = "Hello";
+local int? var msg1 = null;
+msg1 = 1;
 -#- print statement
-print(msg);
+print(msg1+2+23*10^2);

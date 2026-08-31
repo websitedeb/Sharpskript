@@ -134,6 +134,36 @@ export const CharacterKeyword = createToken({
   longer_alt: Identifier,
 });
 
+export const Plus = createToken({
+  name: "Plus",
+  pattern: /\+/,
+  longer_alt: Identifier,
+});
+
+export const Minus = createToken({
+  name: "Minus",
+  pattern: /\-/,
+  longer_alt: Identifier,
+});
+
+export const Multi = createToken({
+  name: "Multi",
+  pattern: /\*/,
+  longer_alt: Identifier,
+});
+
+export const Div = createToken({
+  name: "Div",
+  pattern: /\//,
+  longer_alt: Identifier,
+});
+
+export const Exp = createToken({
+  name: "Exp",
+  pattern: /\^/,
+  longer_alt: Identifier,
+});
+
 export const Comment = createToken({
   name: "Comment",
   pattern: /-#-[^\r\n]*/,
@@ -144,7 +174,6 @@ export const allTokens = [
   WhiteSpace,
   Comment,
 
-  // Operators / punctuation
   Equals,
   Semicolon,
   OpenParen,
@@ -154,7 +183,12 @@ export const allTokens = [
   Double,
   Null,
 
-  // Keywords
+  Plus,
+  Minus,
+  Multi,
+  Div,
+  Exp,
+
   Print,
   Local,
   Global,
@@ -167,7 +201,6 @@ export const allTokens = [
   CharacterKeyword,
   Nullable,
 
-  // Literals
   StringLiteral,
   Integer,
   Identifier,

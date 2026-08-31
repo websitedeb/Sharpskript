@@ -13,6 +13,6 @@
   },
   "type": "module",
   "scripts": {
-    "test": "node dist/cli.js run ./example.sharp"
+    "test": "node dist/cli.js run ./example.sharp --verbose"
   }
 }

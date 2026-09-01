@@ -140,6 +140,10 @@ export class SemanticAnalyzer {
             return "char";
         }
 
+        if (node.children.ObjectKeyword) {
+            return "obj";
+        }
+
         throw new Error("Invalid type.");
     }
 
@@ -212,6 +216,7 @@ export class SemanticAnalyzer {
         if (children.True || children.False) return "boolean";
         if (children.CharacterLiteral) return "char";
         if (children.Null) return "null";
+        if (children.Object) return "obj";
         if (children.expression) return this.inferExpressionType(children.expression[0] as CstNode);
         const identifier = children.Identifier?.[0] as IToken | undefined;
         if (!identifier) throw new Error("Invalid expression.");

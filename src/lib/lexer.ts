@@ -134,6 +134,17 @@ export const CharacterKeyword = createToken({
   longer_alt: Identifier,
 });
 
+export const ObjectKeyword = createToken({
+  name: "ObjectKeyword",
+  pattern: /obj/,
+  longer_alt: Identifier
+});
+
+export const Object = createToken({
+  name: "Object",
+  pattern: /\s*\{[\s\S]*\}\s*/
+});
+
 export const Plus = createToken({
   name: "Plus",
   pattern: /\+/,
@@ -199,12 +210,14 @@ export const allTokens = [
   BooleanKeyword,
   DoubleKeyword,
   CharacterKeyword,
+  ObjectKeyword,
   Nullable,
 
   StringLiteral,
   Integer,
   Identifier,
   CharacterLiteral,
+  Object
 ];
 
 export const SharpLexer = new Lexer(allTokens);

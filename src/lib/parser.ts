@@ -30,6 +30,8 @@ import {
     Multi,
     Div,
     Exp,
+    Object,
+    ObjectKeyword,
     Comment,
 } from "./lexer.js";
 
@@ -87,6 +89,7 @@ export class SharpParser extends CstParser {
             { ALT: () => this.CONSUME(BooleanKeyword) },
             { ALT: () => this.CONSUME(DoubleKeyword) },
             { ALT: () => this.CONSUME(CharacterKeyword) },
+            { ALT: () => this.CONSUME(ObjectKeyword) }
         ]);
     });
 
@@ -185,6 +188,7 @@ export class SharpParser extends CstParser {
                     this.CONSUME(CloseParen);
                 },
             },
+            { ALT: () => this.CONSUME(Object) }
         ]);
     });
 

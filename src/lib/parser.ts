@@ -30,9 +30,15 @@ import {
     Multi,
     Div,
     Exp,
-    Object,
+    OpenCurly,
+    CloseCurly,
     ObjectKeyword,
+    OpenTag,
+    CloseTag,
     Comment,
+    Comma,
+    Colon,
+    Dot,
 } from "./lexer.js";
 
 export class SharpParser extends CstParser {
@@ -59,7 +65,7 @@ export class SharpParser extends CstParser {
     public variableStatement = this.RULE("variableStatement", () => {
         this.SUBRULE(this.scope);
         this.SUBRULE(this.type);
-        this.OPTION(() => {
+        this.OPTION1(() => {
             this.CONSUME(Nullable);
         })
         this.SUBRULE(this.declaration);
@@ -180,16 +186,41 @@ export class SharpParser extends CstParser {
             { ALT: () => this.CONSUME(Double) },
             { ALT: () => this.CONSUME(CharacterLiteral) },
             { ALT: () => this.CONSUME(Null) },
-            { ALT: () => this.CONSUME(Identifier) },
-            {
-                ALT: () => {
-                    this.CONSUME(OpenParen);
-                    this.SUBRULE(this.expression);
-                    this.CONSUME(CloseParen);
-                },
-            },
-            { ALT: () => this.CONSUME(Object) }
+            { ALT: () => {
+                this.CONSUME(OpenParen);
+                this.SUBRULE(this.expression);
+                this.CONSUME(CloseParen);
+            } },
+            { ALT: () => this.SUBRULE(this.obj, { LABEL: "Object" }) },
+            { ALT: () => {
+                this.CONSUME(Identifier);
+                this.MANY(() => {
+                    this.CONSUME(Dot);
+                    this.CONSUME2(Identifier, { LABEL: "Child" });
+                });
+            } },
         ]);
+    });
+
+    public obj = this.RULE("obj", () => {
+        this.CONSUME(OpenCurly);
+
+        this.OPTION(() => {
+            this.SUBRULE(this.objectProperty);
+
+            this.MANY(() => {
+                this.CONSUME(Comma);
+                this.SUBRULE2(this.objectProperty);
+            });
+        });
+
+        this.CONSUME(CloseCurly);
+    });
+
+    public objectProperty = this.RULE("objectProperty", () => {
+        this.CONSUME(Identifier, { LABEL: "key" });
+        this.CONSUME(Colon);
+        this.SUBRULE(this.value, { LABEL: "value" });
     });
 
     constructor() {

@@ -38,10 +38,7 @@ export class SemanticAnalyzer {
         }
     }
 
-    private visitPrintStatement(node: CstNode) {
-        const valueNode = node.children.value?.[0] as CstNode;
-        this.inferExpressionType(valueNode.children.expression?.[0] as CstNode);
-    }
+    private visitPrintStatement(node: CstNode) {}
 
     private visitVariableStatement(node: CstNode) {
         const scopeNode = node.children.scope?.[0] as CstNode;
@@ -64,20 +61,147 @@ export class SemanticAnalyzer {
             );
         }
 
-        if (!this.isExpressionAssignableTo(type, valueNode, isNullable)) {
+        if (!this.isValueAssignableTo(type, valueNode, isNullable)) {
             throw new Error(
                 `Assigned value is not valid for variable '${name}' of type '${type}'.`
             );
         }
 
-        this.variables.set(name, {
-            name,
-            scope,
-            type,
-            declaration,
-            value: this.describeExpression(valueNode),
-            isNullable
-        });
+        if (type != "obj") {
+            this.variables.set(name, {
+                name,
+                scope,
+                type,
+                declaration,
+                value: this.describeExpression(valueNode),
+                isNullable
+            });   
+        } 
+        else {
+            const pairs = this.objDescribe(valueNode);
+
+            const objfunc = (
+                pair: Record<string, any>,
+                parentName: string
+            ): void => {
+                for (const [key, value] of Object.entries(pair)) {
+                    const currentName = `${parentName}.${key}`;
+
+                    if (this.getTypeofValue(value) != "obj") {
+                        this.variables.set(currentName, {
+                            name: currentName,
+                            scope,
+                            type: this.getTypeofValue(value),
+                            declaration,
+                            value: value.toString(),
+                            isNullable
+                        });
+                    } else {
+                        objfunc(value, currentName);
+                    }
+                }
+            };
+
+            objfunc(pairs, name);
+        }
+    }
+
+    private getTypeofValue(value : any): string {
+        if (typeof value === "string") {
+            return "string";
+        }
+        else if (typeof value === "number") {
+            return Number.isInteger(value) ? "integer" : "double";
+        }
+        else if (typeof value === "boolean" || value === "true" || value === "false") {
+            return "boolean";
+        }
+        else if (typeof value === "object" && value !== null) {
+            return "obj";
+        }
+        else if (value.startsWith('\'') && value.endsWith('\'')) {
+            return "char";
+        }
+        else {
+            throw new Error(`Unknown type for value: ${value}`);
+        }
+    }
+
+    private objDescribe(node: CstNode): Record<string, any> {
+        const tokens = this.collectTokens(node);
+        let index = 0;
+
+        const parseObject = (): Record<string, any> => {
+            const result: Record<string, any> = {};
+
+            if (tokens[index]?.image === "{") {
+                index++;
+            }
+
+            while (index < tokens.length && tokens[index]?.image !== "}") {
+                const keyToken = tokens[index];
+                if (!keyToken) {
+                    throw new Error("Expected object key");
+                }
+                const key = keyToken.image;
+                index++;
+
+                if (tokens[index]?.image === ":") {
+                    index++;
+                } else {
+                    throw new Error(`Expected ':' after key '${key}'`);
+                }
+
+                let value: any;
+
+                if (tokens[index]?.image === "{") {
+                    value = parseObject();
+                } else {
+                    const expressionTokens: string[] = [];
+
+                    while (
+                        index < tokens.length &&
+                        tokens[index]?.image !== "," &&
+                        tokens[index]?.image !== "}"
+                    ) {
+                        const token = tokens[index];
+                        if (!token) {
+                            break;
+                        }
+                        expressionTokens.push(token.image);
+                        index++;
+                    }
+
+                    const expression = expressionTokens.join("");
+
+                    if (expression.startsWith('"') && expression.endsWith('"')) {
+                        value = expression.slice(1, -1);
+                    } else if (!isNaN(Number(expression))) {
+                        value = Number(expression);
+                    } else if (expression === "true") {
+                        value = true;
+                    } else if (expression === "false") {
+                        value = false;
+                    } else {
+                        value = expression;
+                    }
+                }
+
+                result[key] = value;
+
+                if (tokens[index]?.image === ",") {
+                    index++;
+                }
+            }
+
+            if (tokens[index]?.image === "}") {
+                index++;
+            }
+
+            return result;
+        };
+
+        return parseObject();
     }
 
     private visitReStatement(node : CstNode){
@@ -91,7 +215,7 @@ export class SemanticAnalyzer {
 
         if (data?.declaration == "const") throw new Error(`${name} is a constant, you cant re-assign it!`);
 
-        if (!this.isExpressionAssignableTo(data.type, valueNode, data.isNullable)) {
+        if (!this.isValueAssignableTo(data.type, valueNode, data.isNullable)) {
             throw new Error(
                 `${name} cannot be assigned that value.`
             );
@@ -164,23 +288,23 @@ export class SemanticAnalyzer {
     }
 
     public visitExpressionStatement(node: CstNode) {
-        this.inferExpressionType(node.children.expression?.[0] as CstNode);
+        this.inferType(node.children.expression?.[0] as CstNode);
     }
 
-    private isExpressionAssignableTo(type: string, valueNode: CstNode, isNullable: boolean): boolean {
+    private isValueAssignableTo(type: string, valueNode: CstNode, isNullable: boolean): boolean {
         const expression = valueNode.children.expression?.[0] as CstNode;
-        const valueType = this.inferExpressionType(expression);
+        const valueType = this.inferType(expression);
         if (valueType === "null") return isNullable;
         return valueType === type || (type === "double" && valueType === "integer");
     }
 
-    private inferExpressionType(node: CstNode): string {
-        if (node.name === "expression") return this.inferExpressionType(node.children.sum?.[0] as CstNode);
+    private inferType(node: CstNode): string {
+        if (node.name === "expression") return this.inferType(node.children.sum?.[0] as CstNode);
         if (node.name === "power") {
-            const left = this.inferExpressionType(node.children.unary?.[0] as CstNode);
+            const left = this.inferType(node.children.unary?.[0] as CstNode);
             const rightNode = node.children.power?.[0] as CstNode | undefined;
             if (!rightNode) return left;
-            const right = this.inferExpressionType(rightNode);
+            const right = this.inferType(rightNode);
             if (!this.isNumeric(left) || !this.isNumeric(right)) {
                 throw new Error("Arithmetic operators require integer or double operands.");
             }
@@ -189,9 +313,9 @@ export class SemanticAnalyzer {
         if (node.name === "sum" || node.name === "product") {
             const children = node.children;
             const terms = (children.product ?? children.power) as CstNode[];
-            let result = this.inferExpressionType(terms[0] as CstNode);
+            let result = this.inferType(terms[0] as CstNode);
             for (let index = 1; index < terms.length; index++) {
-                const right = this.inferExpressionType(terms[index] as CstNode);
+                const right = this.inferType(terms[index] as CstNode);
                 if (!this.isNumeric(result) || !this.isNumeric(right)) {
                     throw new Error("Arithmetic operators require integer or double operands.");
                 }
@@ -201,15 +325,21 @@ export class SemanticAnalyzer {
             return result;
         }
         if (node.name === "unary") {
-            const valueType = this.inferExpressionType(node.children.primary?.[0] as CstNode);
+            const valueType = this.inferType(node.children.primary?.[0] as CstNode);
             if (node.children.Minus && !this.isNumeric(valueType)) {
                 throw new Error("Unary '-' requires an integer or double operand.");
             }
             return valueType;
         }
-        if (node.name !== "primary") throw new Error("Invalid expression.");
-
+        if (node.name !== "primary") {
+            const t = node as unknown as IToken;
+            if (t.tokenType.name !== "Identifier") {
+                throw new Error("Invalid expression.");
+            } else {}
+        }
+        
         const children = node.children;
+
         if (children.Integer) return "integer";
         if (children.Double) return "double";
         if (children.StringLiteral) return "string";
@@ -217,7 +347,29 @@ export class SemanticAnalyzer {
         if (children.CharacterLiteral) return "char";
         if (children.Null) return "null";
         if (children.Object) return "obj";
-        if (children.expression) return this.inferExpressionType(children.expression[0] as CstNode);
+        if (children.Dot) {
+            const identifier = children.Identifier?.[0] as IToken | undefined;
+
+            if (!identifier) {
+                throw new Error("Invalid object access.");
+            }
+
+            const path = [
+                identifier.image,
+                ...(children.Child ?? []).map(
+                    child => (child as IToken).image
+                )
+            ].join(".");
+
+            const variable = this.variables.get(path);
+
+            if (!variable) {
+                throw new Error(`Variable '${path}' has not been declared.`);
+            }
+
+            return variable.type;
+        }
+        if (children.expression) return this.inferType(children.expression[0] as CstNode);
         const identifier = children.Identifier?.[0] as IToken | undefined;
         if (!identifier) throw new Error("Invalid expression.");
         const variable = this.variables.get(identifier.image);

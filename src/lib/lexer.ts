@@ -140,9 +140,14 @@ export const ObjectKeyword = createToken({
   longer_alt: Identifier
 });
 
-export const Object = createToken({
-  name: "Object",
-  pattern: /\s*\{[\s\S]*\}\s*/
+export const OpenCurly = createToken({
+  name: "OpenCurly",
+  pattern: /\{/
+});
+
+export const CloseCurly = createToken({
+  name: "CloseCurly",
+  pattern: /\}/
 });
 
 export const Plus = createToken({
@@ -181,9 +186,37 @@ export const Comment = createToken({
   group: Lexer.SKIPPED,
 });
 
+export const OpenTag = createToken({
+  name: "OpenTag",
+  pattern: /\</,
+});
+
+export const CloseTag = createToken({
+  name: "CloseTag",
+  pattern: /\>/,
+});
+
+export const Comma = createToken({
+  name: "Comma",
+  pattern: /,/,
+});
+
+export const Colon = createToken({
+  name: "Colon",
+  pattern: /:/,
+});
+
+export const Dot = createToken({
+  name: "Dot",
+  pattern: /\./,
+});
+
 export const allTokens = [
   WhiteSpace,
   Comment,
+  OpenTag,
+  CloseTag,
+  Comma,
 
   Equals,
   Semicolon,
@@ -217,7 +250,10 @@ export const allTokens = [
   Integer,
   Identifier,
   CharacterLiteral,
-  Object
+  OpenCurly,
+  CloseCurly,
+  Colon,
+  Dot,
 ];
 
 export const SharpLexer = new Lexer(allTokens);

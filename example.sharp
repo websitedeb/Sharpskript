@@ -7,7 +7,10 @@ local obj var object = {
 };
 
 local obj var number = {
+    t: (2+2),
     u: object.e
 };
 
-print(number.u);
+number.u = object.tj.p;
+
+print(number.u)

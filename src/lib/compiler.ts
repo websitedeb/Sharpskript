@@ -33,7 +33,7 @@ export class Compiler {
         const valueNode = node.children.value?.[0] as CstNode;
         const scopeNode = node.children.scope?.[0] as CstNode;
 
-        const name = identifier.image;
+        let name = identifier.image;
         const declaration = this.compileDeclaration(declarationNode);
         const value = this.compileValue(valueNode);
         const scope = this.compileScope(scopeNode);
@@ -64,7 +64,17 @@ export class Compiler {
 
         const valueNode = node.children.value?.[0] as CstNode;
 
-        const name = identifier.image;
+        let name;
+        if (node.children.OrigChild) {
+            let key = "";
+            node.children.OrigChild?.forEach((child) => {
+                key += "." + (child as IToken).image;
+            });
+            name = identifier.image + key;
+        } else {
+            name = identifier.image;
+        }
+
         const value = this.compileValue(valueNode);
 
         return `${name} = ${value};`;

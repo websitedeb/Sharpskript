@@ -21,6 +21,8 @@ local obj var number = {
     u: object.e
 };
 
+number.u = object.tj.p;
+
 print(number.u);
 `;
 

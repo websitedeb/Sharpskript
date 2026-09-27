@@ -55,9 +55,6 @@ export class SharpParser extends CstParser {
                 {
                     ALT: () => this.SUBRULE(this.reAssignmentStatement),
                 },
-                {
-                    ALT: () => this.SUBRULE(this.expressionStatement),
-                }
             ]);
         });
     });
@@ -112,6 +109,10 @@ export class SharpParser extends CstParser {
 
     public reAssignmentStatement = this.RULE("reAssignmentStatement", () => {
         this.CONSUME(Identifier);
+        this.MANY(() => {
+            this.CONSUME(Dot);
+            this.CONSUME2(Identifier, { LABEL: "OrigChild" });
+        });
         this.CONSUME(Equals);
         this.SUBRULE(this.value);
         this.OPTION(() => {

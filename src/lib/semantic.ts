@@ -205,23 +205,48 @@ export class SemanticAnalyzer {
     }
 
     private visitReStatement(node : CstNode){
-        const valueNode = node.children.value?.[0] as CstNode;
-        const identifier = node.children.Identifier?.[0] as IToken;
-        const name = identifier.image;
 
-        const data = this.variables.get(name);
+        if (node.children.OrigChild) {
+            const valueNode = node.children.value?.[0] as CstNode;
+            const Parent = node.children.Identifier?.[0] as IToken;
+            let key = `${Parent.image}`;
 
-        if (!data) throw new Error(`${name} dosn't exist!`);
+            node.children.OrigChild?.forEach((child) => {
+                key += "." + (child as IToken).image;
+            });
 
-        if (data?.declaration == "const") throw new Error(`${name} is a constant, you cant re-assign it!`);
+            const data = this.variables.get(key);
 
-        if (!this.isValueAssignableTo(data.type, valueNode, data.isNullable)) {
-            throw new Error(
-                `${name} cannot be assigned that value.`
-            );
-        }
+            if (!data) throw new Error(`${key} dosn't exist!`);
 
-        this.changeVariableValue({ ...data, value: this.describeExpression(valueNode) });
+            if (data.declaration == "const") throw new Error(`${key} is a constant, you cant re-assign it!`);
+
+            if (!this.isValueAssignableTo(data.type, valueNode, data.isNullable)) {
+                throw new Error(
+                    `${key} cannot be assigned that value.`
+                );
+            }
+
+            this.changeVariableValue({ ...data, value: this.describeExpression(valueNode)});
+        } else {
+            const valueNode = node.children.value?.[0] as CstNode;
+            const identifier = node.children.Identifier?.[0] as IToken;
+            const name = identifier.image;
+
+            const data = this.variables.get(name);
+
+            if (!data) throw new Error(`${name} dosn't exist!`);
+
+            if (data?.declaration == "const") throw new Error(`${name} is a constant, you cant re-assign it!`);
+
+            if (!this.isValueAssignableTo(data.type, valueNode, data.isNullable)) {
+                throw new Error(
+                    `${name} cannot be assigned that value.`
+                );
+            }
+
+            this.changeVariableValue({ ...data, value: this.describeExpression(valueNode) });
+        }   
     }
 
     private changeVariableValue(newVar : Variable) {

@@ -1,9 +1,14 @@
 import type { CstNode, IToken } from "chevrotain";
+import { FCompiler } from "../tools/functionCreator.js";
 
 export class Compiler {
     private output: string[] = [];
 
-    compile(cst: CstNode): string {
+    private addToOutput(line: string) {
+        this.output.push(line);
+    }
+
+    public compile(cst: CstNode): string {
         const statements = Object.values(cst.children)
             .flat() as CstNode[];
 
@@ -15,13 +20,11 @@ export class Compiler {
                 case "reAssignmentStatement":
                     this.output.push(this.compileAssignment(node));
                     break;
-                case "printStatement":
-                    this.output.push(this.compilePrint(node));
-                    break;
                 case "expressionStatement":
                     this.output.push(this.compileExpression(node));
                     break;
             }
+            new FCompiler("printStatement", "console.log", 1, this.compileExpressionNode.bind(this), this.addToOutput.bind(this)).compile(node);
         }
 
         return this.output.join("\n");
@@ -33,7 +36,7 @@ export class Compiler {
         const valueNode = node.children.value?.[0] as CstNode;
         const scopeNode = node.children.scope?.[0] as CstNode;
 
-        const name = identifier.image;
+        let name = identifier.image;
         const declaration = this.compileDeclaration(declarationNode);
         const value = this.compileValue(valueNode);
         const scope = this.compileScope(scopeNode);
@@ -64,18 +67,20 @@ export class Compiler {
 
         const valueNode = node.children.value?.[0] as CstNode;
 
-        const name = identifier.image;
+        let name;
+        if (node.children.OrigChild) {
+            let key = "";
+            node.children.OrigChild?.forEach((child) => {
+                key += "." + (child as IToken).image;
+            });
+            name = identifier.image + key;
+        } else {
+            name = identifier.image;
+        }
+
         const value = this.compileValue(valueNode);
 
         return `${name} = ${value};`;
-    }
-
-    private compilePrint(node: CstNode): string {
-        const valueNode = node.children.value?.[0] as CstNode;
-
-        const value = this.compileValue(valueNode);
-
-        return `console.log(${value});`;
     }
 
     private compileValue(node: CstNode): string {

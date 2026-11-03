@@ -1,4 +1,16 @@
-local int? var msg1 = null;
-msg1 = 1;
--#- print statement
-print(msg1+2+23*10^2);
+local obj var object = { 
+    e: "1",
+    t:2,
+    tj: {
+        p: "e"
+    }
+};
+
+local obj? var number = {
+    t: (2+2),
+    u: null
+};
+
+number.u = object.tj.p;
+
+print(number.u)

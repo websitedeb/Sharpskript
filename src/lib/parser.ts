@@ -30,8 +30,19 @@ import {
     Multi,
     Div,
     Exp,
+    OpenCurly,
+    CloseCurly,
+    ObjectKeyword,
+    OpenTag,
+    CloseTag,
     Comment,
+    Comma,
+    Colon,
+    Dot,
+    SquareClosedBracket,
+    SquareOpenBracket
 } from "./lexer.js";
+import { FParser } from "../tools/functionCreator.js";
 
 export class SharpParser extends CstParser {
 
@@ -47,17 +58,18 @@ export class SharpParser extends CstParser {
                 {
                     ALT: () => this.SUBRULE(this.reAssignmentStatement),
                 },
-                {
-                    ALT: () => this.SUBRULE(this.expressionStatement),
-                }
             ]);
         });
+    });
+
+    public value = this.RULE("value", () => {
+        this.SUBRULE(this.expression);
     });
 
     public variableStatement = this.RULE("variableStatement", () => {
         this.SUBRULE(this.scope);
         this.SUBRULE(this.type);
-        this.OPTION(() => {
+        this.OPTION1(() => {
             this.CONSUME(Nullable);
         })
         this.SUBRULE(this.declaration);
@@ -87,6 +99,7 @@ export class SharpParser extends CstParser {
             { ALT: () => this.CONSUME(BooleanKeyword) },
             { ALT: () => this.CONSUME(DoubleKeyword) },
             { ALT: () => this.CONSUME(CharacterKeyword) },
+            { ALT: () => this.CONSUME(ObjectKeyword) }
         ]);
     });
 
@@ -97,32 +110,19 @@ export class SharpParser extends CstParser {
         ]);
     });
 
-    public value = this.RULE("value", () => {
-        this.SUBRULE(this.expression);
-    });
-
     public reAssignmentStatement = this.RULE("reAssignmentStatement", () => {
         this.CONSUME(Identifier);
+        this.MANY(() => {
+            this.CONSUME(Dot);
+            this.CONSUME2(Identifier, { LABEL: "OrigChild" });
+        });
         this.CONSUME(Equals);
         this.SUBRULE(this.value);
         this.OPTION(() => {
             this.CONSUME(Semicolon);
         });
     });
-
-    public printStatement = this.RULE("printStatement", () => {
-        this.CONSUME(Print);
-        this.CONSUME(OpenParen);
-
-        this.SUBRULE(this.value);
-
-        this.CONSUME(CloseParen);
-
-        this.OPTION(() => {
-            this.CONSUME(Semicolon);
-        });
-    });
-
+    
     public expressionStatement = this.RULE("expressionStatement", () => {
         this.SUBRULE(this.expression);
         this.OPTION(() => this.CONSUME(Semicolon));
@@ -132,6 +132,13 @@ export class SharpParser extends CstParser {
     public expression = this.RULE("expression", () => {
         this.SUBRULE(this.sum);
     });
+
+    public printStatement = FParser(
+        this,
+        "print",
+        Print,
+        this.expression
+    );
 
     public sum = this.RULE("sum", () => {
         this.SUBRULE(this.product);
@@ -177,20 +184,45 @@ export class SharpParser extends CstParser {
             { ALT: () => this.CONSUME(Double) },
             { ALT: () => this.CONSUME(CharacterLiteral) },
             { ALT: () => this.CONSUME(Null) },
-            { ALT: () => this.CONSUME(Identifier) },
-            {
-                ALT: () => {
-                    this.CONSUME(OpenParen);
-                    this.SUBRULE(this.expression);
-                    this.CONSUME(CloseParen);
-                },
-            },
+            { ALT: () => {
+                this.CONSUME(OpenParen);
+                this.SUBRULE(this.expression);
+                this.CONSUME(CloseParen);
+            } },
+            { ALT: () => this.SUBRULE(this.obj, { LABEL: "Object" }) },
+            { ALT: () => {
+                this.CONSUME(Identifier);
+                this.MANY(() => {
+                    this.CONSUME(Dot);
+                    this.CONSUME2(Identifier, { LABEL: "Child" });
+                });
+            } },
         ]);
+    });
+
+    public obj = this.RULE("obj", () => {
+        this.CONSUME(OpenCurly);
+
+        this.OPTION(() => {
+            this.SUBRULE(this.objectProperty);
+
+            this.MANY(() => {
+                this.CONSUME(Comma);
+                this.SUBRULE2(this.objectProperty);
+            });
+        });
+
+        this.CONSUME(CloseCurly);
+    });
+
+    public objectProperty = this.RULE("objectProperty", () => {
+        this.CONSUME(Identifier, { LABEL: "key" });
+        this.CONSUME(Colon);
+        this.SUBRULE(this.value, { LABEL: "value" });
     });
 
     constructor() {
         super(allTokens);
-
         this.performSelfAnalysis();
     }
 }

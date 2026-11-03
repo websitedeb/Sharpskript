@@ -6,9 +6,9 @@ local obj var object = {
     }
 };
 
-local obj var number = {
+local obj? var number = {
     t: (2+2),
-    u: object.e
+    u: null
 };
 
 number.u = object.tj.p;

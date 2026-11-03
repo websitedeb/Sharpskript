@@ -1,4 +1,5 @@
 import type { CstNode, IToken } from "chevrotain";
+import { FSemantics } from "../tools/functionCreator.js";
 
 type Variable = {
     name: string;
@@ -25,9 +26,6 @@ export class SemanticAnalyzer {
                 case "variableStatement":
                     this.visitVariableStatement(statement);
                     break;
-                case "printStatement":
-                    this.visitPrintStatement(statement);
-                    break;
                 case "reAssignmentStatement":
                     this.visitReStatement(statement);
                     break;
@@ -35,10 +33,9 @@ export class SemanticAnalyzer {
                     this.visitExpressionStatement(statement);
                     break;
             }
+            new FSemantics("printStatement", this.inferType.bind(this), 1, ["string"]).statement(statement);
         }
     }
-
-    private visitPrintStatement(node: CstNode) {}
 
     private visitVariableStatement(node: CstNode) {
         const scopeNode = node.children.scope?.[0] as CstNode;

@@ -39,7 +39,10 @@ import {
     Comma,
     Colon,
     Dot,
+    SquareClosedBracket,
+    SquareOpenBracket
 } from "./lexer.js";
+import { FParser } from "../tools/functionCreator.js";
 
 export class SharpParser extends CstParser {
 
@@ -57,6 +60,10 @@ export class SharpParser extends CstParser {
                 },
             ]);
         });
+    });
+
+    public value = this.RULE("value", () => {
+        this.SUBRULE(this.expression);
     });
 
     public variableStatement = this.RULE("variableStatement", () => {
@@ -103,10 +110,6 @@ export class SharpParser extends CstParser {
         ]);
     });
 
-    public value = this.RULE("value", () => {
-        this.SUBRULE(this.expression);
-    });
-
     public reAssignmentStatement = this.RULE("reAssignmentStatement", () => {
         this.CONSUME(Identifier);
         this.MANY(() => {
@@ -119,20 +122,7 @@ export class SharpParser extends CstParser {
             this.CONSUME(Semicolon);
         });
     });
-
-    public printStatement = this.RULE("printStatement", () => {
-        this.CONSUME(Print);
-        this.CONSUME(OpenParen);
-
-        this.SUBRULE(this.value);
-
-        this.CONSUME(CloseParen);
-
-        this.OPTION(() => {
-            this.CONSUME(Semicolon);
-        });
-    });
-
+    
     public expressionStatement = this.RULE("expressionStatement", () => {
         this.SUBRULE(this.expression);
         this.OPTION(() => this.CONSUME(Semicolon));
@@ -142,6 +132,13 @@ export class SharpParser extends CstParser {
     public expression = this.RULE("expression", () => {
         this.SUBRULE(this.sum);
     });
+
+    public printStatement = FParser(
+        this,
+        "print",
+        Print,
+        this.expression
+    );
 
     public sum = this.RULE("sum", () => {
         this.SUBRULE(this.product);
@@ -226,7 +223,6 @@ export class SharpParser extends CstParser {
 
     constructor() {
         super(allTokens);
-
         this.performSelfAnalysis();
     }
 }

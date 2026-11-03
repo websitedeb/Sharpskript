@@ -8,22 +8,8 @@ import { Compiler } from "./lib/compiler.js";
 import { VM } from "./lib/vm.js";
 
 const input = `
-local obj var object = { 
-    e: "1",
-    t:2,
-    tj: {
-        p: "e"
-    }
-};
-
-local obj var number = {
-    t: (2+2),
-    u: object.e
-};
-
-number.u = object.tj.p;
-
-print(number.u);
+local string const name = "Sarthak";
+print(name);
 `;
 
 

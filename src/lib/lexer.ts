@@ -1,4 +1,5 @@
-import { createToken, Lexer } from "chevrotain";
+import { createToken, Lexer, type TokenType } from "chevrotain";
+import { FLexer } from "../tools/functionCreator.js";
 
 export const Identifier = createToken({
   name: "Identifier",
@@ -11,11 +12,11 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED,
 });
 
-export const Print = createToken({
-  name: "Print",
-  pattern: /print/,
-  longer_alt: Identifier,
-});
+// export const Print = createToken({
+//   name: "Print",
+//   pattern: /print/,
+//   longer_alt: Identifier,
+// });
 
 export const Local = createToken({
   name: "Local",
@@ -211,6 +212,18 @@ export const Dot = createToken({
   pattern: /\./,
 });
 
+export const SquareOpenBracket = createToken({
+  name: "SquareOpenBracket",
+  pattern: /\[]/,
+});
+
+export const SquareClosedBracket = createToken({
+  name: "SquareClosedBracket",
+  pattern: /\]]/,
+});
+
+export const Print = FLexer(Identifier, "print");
+
 export const allTokens = [
   WhiteSpace,
   Comment,
@@ -226,6 +239,7 @@ export const allTokens = [
   False,
   Double,
   Null,
+  Print,
 
   Plus,
   Minus,
@@ -233,7 +247,6 @@ export const allTokens = [
   Div,
   Exp,
 
-  Print,
   Local,
   Global,
   Var,
@@ -254,6 +267,8 @@ export const allTokens = [
   CloseCurly,
   Colon,
   Dot,
+  SquareClosedBracket,
+  SquareOpenBracket
 ];
 
 export const SharpLexer = new Lexer(allTokens);

@@ -33,7 +33,7 @@ export class SemanticAnalyzer {
                     this.visitExpressionStatement(statement);
                     break;
             }
-            new FSemantics("printStatement", this.inferType.bind(this), 1, ["string"]).statement(statement);
+            new FSemantics("printStatement", this.inferType.bind(this), 1, ["string", "integer", "double", "boolean", "char", "null", "obj"]).statement(statement);
         }
     }
 
@@ -202,6 +202,20 @@ export class SemanticAnalyzer {
     }
 
     private visitReStatement(node : CstNode){
+        const increment = node.children.Increment?.[0] as IToken | undefined;
+        const decrement = node.children.Decrement?.[0] as IToken | undefined;
+        if (increment || decrement) {
+            const identifier = node.children.Identifier?.[0] as IToken;
+            const children = (node.children.OrigChild ?? []) as IToken[];
+            const name = [identifier.image, ...children.map(child => child.image)].join(".");
+            const data = this.variables.get(name);
+            if (!data) throw new Error(`${name} hasn't been declared.`);
+            if (data.declaration === "const") throw new Error(`${name} is a constant, you can't re-assign it!`);
+            if (!this.isNumeric(data.type)) throw new Error(`${name} must be numeric to use ${increment ? "++" : "--"}.`);
+            const delta = increment ? "+ 1" : "- 1";
+            this.changeVariableValue({ ...data, value: `${data.value} ${delta}` });
+            return;
+        }
 
         if (node.children.OrigChild) {
             const valueNode = node.children.value?.[0] as CstNode;
@@ -321,7 +335,31 @@ export class SemanticAnalyzer {
     }
 
     private inferType(node: CstNode): string {
-        if (node.name === "expression") return this.inferType(node.children.sum?.[0] as CstNode);
+        if (node.name === "expression") return this.inferType(node.children.orExpression?.[0] as CstNode);
+        if (node.name === "orExpression" || node.name === "andExpression") {
+            const operands = Object.values(node.children).flat().filter(child => !("image" in child)) as CstNode[];
+            const types = operands.map(operand => this.inferType(operand));
+            const operator = node.name === "orExpression" ? "Or" : "And";
+            if (!node.children[operator]) return types[0] as string;
+            if (types.some(type => type !== "boolean")) {
+                throw new Error(`Operator '${node.name === "orExpression" ? "or" : "and"}' requires boolean operands.`);
+            }
+            return "boolean";
+        }
+        if (node.name === "equalityExpression" || node.name === "comparisonExpression") {
+            const operands = Object.values(node.children).flat().filter(child => !("image" in child)) as CstNode[];
+            const types = operands.map(operand => this.inferType(operand));
+            if (types.length > 1) {
+                for (let index = 1; index < types.length; index++) {
+                    const left = types[index - 1] as string;
+                    const right = types[index] as string;
+                    if (this.isNumeric(left) && this.isNumeric(right)) continue;
+                    if (left !== right) throw new Error("Comparison operands must have compatible types.");
+                }
+                return "boolean";
+            }
+            return types[0] as string;
+        }
         if (node.name === "power") {
             const left = this.inferType(node.children.unary?.[0] as CstNode);
             const rightNode = node.children.power?.[0] as CstNode | undefined;
@@ -338,6 +376,11 @@ export class SemanticAnalyzer {
             let result = this.inferType(terms[0] as CstNode);
             for (let index = 1; index < terms.length; index++) {
                 const right = this.inferType(terms[index] as CstNode);
+                if (node.name === "sum" && children.ConcatOperator) {
+                    if (result !== "string" || right !== "string") throw new Error("Concatenation requires string operands.");
+                    result = "string";
+                    continue;
+                }
                 if (!this.isNumeric(result) || !this.isNumeric(right)) {
                     throw new Error("Arithmetic operators require integer or double operands.");
                 }
@@ -361,6 +404,13 @@ export class SemanticAnalyzer {
         }
         
         const children = node.children;
+
+        if (children.Increment || children.Decrement) {
+            const operand = { ...node, children: Object.fromEntries(Object.entries(children).filter(([key]) => key !== "Increment" && key !== "Decrement")) } as CstNode;
+            const type = this.inferType(operand);
+            if (!this.isNumeric(type)) throw new Error("Increment and decrement require a numeric variable.");
+            return type;
+        }
 
         if (children.Integer) return "integer";
         if (children.Double) return "double";

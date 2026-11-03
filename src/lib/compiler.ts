@@ -78,9 +78,21 @@ export class Compiler {
             name = identifier.image;
         }
 
-        const value = this.compileValue(valueNode);
+        const increment = node.children.Increment?.[0] as IToken | undefined;
+        const decrement = node.children.Decrement?.[0] as IToken | undefined;
+        if (increment || decrement) {
+            return `${name}${(increment ?? decrement)!.image};`;
+        }
 
-        return `${name} = ${value};`;
+        const value = this.compileValue(valueNode);
+        const operator = ["AddSelf", "SubtractSelf", "MultiplySelf", "DivideSelf", "ModulusSelf", "ExpSelf"]
+            .map(key => node.children[key]?.[0] as IToken | undefined)
+            .find(Boolean);
+        const operation = operator
+            ? (operator.tokenType.name === "ExpSelf" ? "**=" : operator.image)
+            : "=";
+
+        return `${name} ${operation} ${value};`;
     }
 
     private compileValue(node: CstNode): string {
@@ -125,7 +137,10 @@ export class Compiler {
 
     private compileExpressionNode(node: CstNode): string {
         return this.collectTokens(node)
-            .map(token => token.image === "^" ? "**" : token.image)
+            .map(token => token.image === "^" ? "**" : token.image === ".." ? "+" : token.image)
+            .map(token => token === "not" ? "!" : token)
+            .map(token => token === "and" ? "&&" : token)
+            .map(token => token === "or" ? "||" : token)
             .join(" ");
     }
 

@@ -73,10 +73,38 @@ print("Hello World");
 print('e');
 ```
 
-### Expressions
+### Expressions and operators
 Integer and double values can be combined with `+`, `-`, `*`, `/`, and `^`.
 Parentheses control evaluation order; otherwise exponentiation is evaluated first,
-then multiplication/division, then addition/subtraction.
+then multiplication/division, then addition/subtraction. `^` is the exponentiation
+operator.
+
+Comparisons use `<` and `>` (spelled `OpenTag` and `CloseTag` in the lexer),
+`<=`, and `>=`. Equality uses `==` and `!=`. Comparisons and equality produce
+booleans. Logical expressions use `and` / `&&`, `or` / `||`, and unary `not` / `!`.
+The word forms are reserved only when used as whole words; for example,
+`orange` remains an identifier.
+
+Strings can be joined with `..`:
+
+```
+print("Hello" .. " world");
+```
+
+Mutable variables also support compound assignment with `+=`, `-=`, `*=`, `/=`,
+`%=`, and `^=`. `++` and `--` increment or decrement numeric variables, either
+as standalone statements or after a variable in an expression:
+
+```
+local int var count = 2;
+count += 3;
+count++;
+print(count--);
+```
+
+Expressions may use previously declared variables. Arithmetic operators require
+numeric values; concatenation requires strings, and increment/decrement require
+numeric variables.
 
 ```
 local int var total = 1 + 2 * 3;
@@ -84,8 +112,8 @@ local double var average = (total + 1) / 2;
 print(average);
 ```
 
-Expressions may use previously declared `int` and `double` variables. Other
-types, undeclared variables, and `null` values produce semantic errors.
+Undeclared variables and `null` values used in expressions produce semantic
+errors.
 
 ## CLI
 there is only 1 command (once i bundle the typescript)

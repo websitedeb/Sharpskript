@@ -197,6 +197,26 @@ export const CloseTag = createToken({
   pattern: /\>/,
 });
 
+export const GreaterOrEqual = createToken({
+  name: "GreaterOrEqual",
+  pattern: />=/,
+});
+
+export const LessOrEqual = createToken({
+  name: "LessOrEqual",
+  pattern: /<=/,
+});
+
+export const NotEqual = createToken({
+  name: "NotEqual",
+  pattern: /!=/,
+});
+
+export const isEqual = createToken({
+  name: "isEqual",
+  pattern: /==/,
+});
+
 export const Comma = createToken({
   name: "Comma",
   pattern: /,/,
@@ -222,11 +242,90 @@ export const SquareClosedBracket = createToken({
   pattern: /\]]/,
 });
 
+export const Not = createToken({
+  name: "Not",
+  pattern: /\!|not/,
+  longer_alt: Identifier,
+});
+
+export const And = createToken({
+  name: "And",
+  pattern: /\&\&|and/,
+  longer_alt: Identifier,
+});
+
+export const Or = createToken({
+  name: "Or",
+  pattern: /\|\||or/,
+  longer_alt: Identifier,
+});
+
+export const Increment = createToken({
+  name: "Increment",
+  pattern: /\+\+/,
+});
+
+export const Decrement = createToken({
+  name: "Decrement",
+  pattern: /\-\-/,
+});
+
+export const AddSelf = createToken({
+  name: "AddSelf",
+  pattern: /\+=/,
+});
+
+export const SubtractSelf = createToken({
+  name: "SubtractSelf",
+  pattern: /\-=/,
+});
+
+export const MultiplySelf = createToken({
+  name: "MultiplySelf",
+  pattern: /\*=/,
+});
+
+export const DivideSelf = createToken({
+  name: "DivideSelf",
+  pattern: /\/=/,
+});
+
+export const ModulusSelf = createToken({
+  name: "ModulusSelf",
+  pattern: /\%=/,
+});
+
+export const ExpSelf = createToken({
+  name: "ExpSelf",
+  pattern: /\^=/,
+});
+
 export const Print = FLexer(Identifier, "print");
+
+export const ConcatOperator = createToken({
+  name: "ConcatOperator",
+  pattern: /\.\./,
+});
 
 export const allTokens = [
   WhiteSpace,
   Comment,
+  GreaterOrEqual,
+  LessOrEqual,
+  NotEqual,
+  isEqual,
+  Increment,
+  Decrement,
+  AddSelf,
+  SubtractSelf,
+  MultiplySelf,
+  DivideSelf,
+  ModulusSelf,
+  ExpSelf,
+  ConcatOperator,
+  And,
+  Or,
+  Not,
   OpenTag,
   CloseTag,
   Comma,
@@ -268,7 +367,7 @@ export const allTokens = [
   Colon,
   Dot,
   SquareClosedBracket,
-  SquareOpenBracket
+  SquareOpenBracket,
 ];
 
 export const SharpLexer = new Lexer(allTokens);

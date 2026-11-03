@@ -38,6 +38,7 @@ there are currently 6 types:
 * double : Decimal Numbers, (0.01, 2.1)
 * char : Single characters inside '' ('e')
 * null : null value (null)
+* obj: objects
 
 #### Declaration
 there are 2 declarations:
@@ -53,6 +54,14 @@ local string? const isNull = null; -#- null values
 
 -#- re-assigning
 msg = "Yo";
+
+-#- objects
+local obj const object = {
+    one: 1,
+    two: "two"
+};
+
+print(obj.one);
 ```
 
 ### Print Statement

@@ -33,14 +33,30 @@ import {
     OpenCurly,
     CloseCurly,
     ObjectKeyword,
-    OpenTag,
-    CloseTag,
     Comment,
     Comma,
     Colon,
     Dot,
     SquareClosedBracket,
-    SquareOpenBracket
+    SquareOpenBracket,
+    OpenTag,
+    CloseTag,
+    GreaterOrEqual,
+    LessOrEqual,
+    NotEqual,
+    isEqual,
+    ConcatOperator,
+    Not,
+    And,
+    Or,
+    Increment,
+    Decrement,
+    AddSelf,
+    SubtractSelf,
+    MultiplySelf,
+    DivideSelf,
+    ModulusSelf,
+    ExpSelf,
 } from "./lexer.js";
 import { FParser } from "../tools/functionCreator.js";
 
@@ -116,8 +132,24 @@ export class SharpParser extends CstParser {
             this.CONSUME(Dot);
             this.CONSUME2(Identifier, { LABEL: "OrigChild" });
         });
-        this.CONSUME(Equals);
-        this.SUBRULE(this.value);
+        this.OR([
+            { ALT: () => {
+                this.OR2([
+                    { ALT: () => this.CONSUME(Equals) },
+                    { ALT: () => this.CONSUME(AddSelf) },
+                    { ALT: () => this.CONSUME(SubtractSelf) },
+                    { ALT: () => this.CONSUME(MultiplySelf) },
+                    { ALT: () => this.CONSUME(DivideSelf) },
+                    { ALT: () => this.CONSUME(ModulusSelf) },
+                    { ALT: () => this.CONSUME(ExpSelf) },
+                ]);
+                this.SUBRULE(this.value);
+            } },
+            { ALT: () => this.OR3([
+                { ALT: () => this.CONSUME(Increment) },
+                { ALT: () => this.CONSUME(Decrement) },
+            ]) },
+        ]);
         this.OPTION(() => {
             this.CONSUME(Semicolon);
         });
@@ -130,7 +162,34 @@ export class SharpParser extends CstParser {
 
     //power > product > sum.
     public expression = this.RULE("expression", () => {
+        this.SUBRULE(this.orExpression);
+    });
+
+    public orExpression = this.RULE("orExpression", () => {
+        this.SUBRULE(this.andExpression);
+        this.MANY(() => { this.CONSUME(Or); this.SUBRULE2(this.andExpression); });
+    });
+
+    public andExpression = this.RULE("andExpression", () => {
+        this.SUBRULE(this.equalityExpression);
+        this.MANY(() => { this.CONSUME(And); this.SUBRULE2(this.equalityExpression); });
+    });
+
+    public equalityExpression = this.RULE("equalityExpression", () => {
+        this.SUBRULE(this.comparisonExpression);
+        this.MANY(() => {
+            this.OR([{ ALT: () => this.CONSUME(isEqual) }, { ALT: () => this.CONSUME(NotEqual) }]);
+            this.SUBRULE2(this.comparisonExpression);
+        });
+    });
+
+    public comparisonExpression = this.RULE("comparisonExpression", () => {
         this.SUBRULE(this.sum);
+        this.MANY(() => {
+            this.OR([{ ALT: () => this.CONSUME(OpenTag) }, { ALT: () => this.CONSUME(CloseTag) },
+                { ALT: () => this.CONSUME(GreaterOrEqual) }, { ALT: () => this.CONSUME(LessOrEqual) }]);
+            this.SUBRULE2(this.sum);
+        });
     });
 
     public printStatement = FParser(
@@ -146,6 +205,7 @@ export class SharpParser extends CstParser {
             this.OR([
                 { ALT: () => this.CONSUME(Plus) },
                 { ALT: () => this.CONSUME(Minus) },
+                { ALT: () => this.CONSUME(ConcatOperator) },
             ]);
             this.SUBRULE2(this.product);
         });
@@ -171,7 +231,7 @@ export class SharpParser extends CstParser {
     });
 
     public unary = this.RULE("unary", () => {
-        this.OPTION(() => this.CONSUME(Minus));
+        this.MANY(() => this.OR([{ ALT: () => this.CONSUME(Minus) }, { ALT: () => this.CONSUME(Not) }]));
         this.SUBRULE(this.primary);
     });
 
@@ -198,6 +258,10 @@ export class SharpParser extends CstParser {
                 });
             } },
         ]);
+        this.OPTION2(() => this.OR4([
+            { ALT: () => this.CONSUME(Increment) },
+            { ALT: () => this.CONSUME(Decrement) },
+        ]));
     });
 
     public obj = this.RULE("obj", () => {

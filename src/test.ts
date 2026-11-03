@@ -8,8 +8,8 @@ import { Compiler } from "./lib/compiler.js";
 import { VM } from "./lib/vm.js";
 
 const input = `
-local string const name = "Sarthak";
-print(name);
+local int var inc = 2;
+print((not true) and false);
 `;
 
 
@@ -82,6 +82,7 @@ const compiler = new Compiler()
 const compiledJS = compiler.compile(cst)
 
 console.log("Compiled into Javascript");
+console.log(compiledJS);
 
 console.log("\n========== VM ==========")
 

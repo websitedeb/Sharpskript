@@ -1,4 +1,4 @@
-import type { CstNode, ParserMethod, TokenType, BaseParser, CstParser } from "chevrotain";
+import type { CstNode, TokenType, CstParser } from "chevrotain";
 import { createToken } from "chevrotain";
 import { OpenParen, CloseParen, Semicolon } from "../lib/lexer.js";
 
@@ -60,7 +60,7 @@ export class FSemantics {
             }
             for (let i = 0; i < params.length; i++) {
                 const paramType = this.inferType(params[i]);
-                if (paramType !== this.paramsTypeList[i]) {
+                if (!this.paramsTypeList.includes(paramType)) {
                     throw new Error(`Function ${this.name} expects parameter ${i + 1} to be of type ${this.paramsTypeList[i]}, but got ${paramType}`);
                 }
             }

@@ -57,6 +57,7 @@ import {
     DivideSelf,
     ModulusSelf,
     ExpSelf,
+    MultiLineComment,
 } from "./lexer.js";
 import { FParser } from "../tools/functionCreator.js";
 

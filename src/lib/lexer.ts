@@ -12,12 +12,6 @@ export const WhiteSpace = createToken({
   group: Lexer.SKIPPED,
 });
 
-// export const Print = createToken({
-//   name: "Print",
-//   pattern: /print/,
-//   longer_alt: Identifier,
-// });
-
 export const Local = createToken({
   name: "Local",
   pattern: /local/,
@@ -307,9 +301,16 @@ export const ConcatOperator = createToken({
   pattern: /\.\./,
 });
 
+export const MultiLineComment = createToken({
+  name: "MultiLineComment",
+  pattern: /--#[\s\S]*?#--/,
+  group: Lexer.SKIPPED,
+});
+
 export const allTokens = [
   WhiteSpace,
   Comment,
+  MultiLineComment,
   GreaterOrEqual,
   LessOrEqual,
   NotEqual,

@@ -16,9 +16,16 @@ right now i wont release it in standalone format as you cant really do much righ
 semi colons are optional, i just like them
 
 ### Comments
-only single lined comments for now:
+single lined:
 ```
 -#- this is a comment
+```
+
+double lined:
+```
+--# this is
+a double
+lined comment #--
 ```
 
 ### Variables

@@ -8,6 +8,9 @@ import { Compiler } from "./lib/compiler.js";
 import { VM } from "./lib/vm.js";
 
 const input = `
+--# this should
+be a 
+comment #--
 local int var inc = 2;
 print((not true) and false);
 `;
